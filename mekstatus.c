@@ -77,7 +77,7 @@ char *percentagecolor(double percentage) {
 	return buf;
 }
 
-void colorprint(char *str, const char *color) {
+void colorprint(const char *str, const char *color) {
 	printf(",{\"full_text\":\"%s\"", str);
 	if (strlen(color) > 0) {
 		printf(",\"color\":\"%s\"", color);
@@ -93,10 +93,7 @@ int checkbatteryproperty(const char *identifier, const char *property, int (*fil
 	char *buf = (char *) malloc(strlen(batt_prefix) + strlen(identifier) + 1 + strlen(property) + 1);
 	int filtret;
 
-	strcpy(buf, batt_prefix);
-	strcat(buf, identifier);
-	strcat(buf, "/");
-	strcat(buf, property);
+       sprintf(buf, "%s%s/%s", batt_prefix, identifier, property);
 	batt_f = fopen(buf, "r");
 	if (batt_f == NULL) {
 		return 0;
@@ -137,6 +134,7 @@ int isbatteryfilt(FILE *f, void *ignorebuf) {
 	char *buf = (char *) malloc(64);
 	if (fscanf(f, "%s", buf) > 0) {
 		if (strncmp(bat_s, buf, sizeof(bat_s) * sizeof(char)) == 0) {
+                       free(buf);
 			if (ignorebuf != NULL) {
 				*(int *) ignorebuf = 1;
 			}
@@ -164,8 +162,10 @@ int getbatterycharge(const char *identifier) {
 int getbatterystatus(const char *identifier, char *buf) {
 	char fbuf[32];
 	int ret;
-	strcpy(fbuf, buf);
+       strncpy(fbuf, buf, sizeof(fbuf) - sizeof(fbuf[0]));
+       fbuf[31] = '\0';
 	ret = checkbatteryproperty(identifier, "status", getstrfilt, (void *) buf);
+       /* gotta get dem funroll oops, hence only comparing 4 bytes */
 	if (strncmp(buf, "Discharging", 4) == 0) {
 		strcpy(buf, "-");
 	} else if (strncmp(buf, "Charging", 4) == 0) {
