@@ -93,7 +93,7 @@ int checkbatteryproperty(const char *identifier, const char *property, int (*fil
 	char *buf = (char *) malloc(strlen(batt_prefix) + strlen(identifier) + 1 + strlen(property) + 1);
 	int filtret;
 
-       sprintf(buf, "%s%s/%s", batt_prefix, identifier, property);
+	sprintf(buf, "%s%s/%s", batt_prefix, identifier, property);
 	batt_f = fopen(buf, "r");
 	if (batt_f == NULL) {
 		return 0;
@@ -107,7 +107,8 @@ int checkbatteryproperty(const char *identifier, const char *property, int (*fil
 /* some of the aforementioned filters */
 int getstrfilt(FILE *f, void *buf) {
 	int ret = 0;
-	if (fscanf(f, "%s", (char *) buf) > 0) {
+	/* 32 bytes ought to be enough for anybody */
+	if (fscanf(f, "%31s", (char *) buf) > 0) {
 		return ret;
 	}
 	return 0;
@@ -134,7 +135,7 @@ int isbatteryfilt(FILE *f, void *ignorebuf) {
 	char *buf = (char *) malloc(64);
 	if (fscanf(f, "%s", buf) > 0) {
 		if (strncmp(bat_s, buf, sizeof(bat_s) * sizeof(char)) == 0) {
-                       free(buf);
+			free(buf);
 			if (ignorebuf != NULL) {
 				*(int *) ignorebuf = 1;
 			}
@@ -162,10 +163,10 @@ int getbatterycharge(const char *identifier) {
 int getbatterystatus(const char *identifier, char *buf) {
 	char fbuf[32];
 	int ret;
-       strncpy(fbuf, buf, sizeof(fbuf) - sizeof(fbuf[0]));
-       fbuf[31] = '\0';
+	strncpy(fbuf, buf, sizeof(fbuf) - sizeof(fbuf[0]));
+	fbuf[31] = '\0';
 	ret = checkbatteryproperty(identifier, "status", getstrfilt, (void *) buf);
-       /* gotta get dem funroll oops, hence only comparing 4 bytes */
+	/* gotta get dem funroll oops, hence only comparing 4 bytes */
 	if (strncmp(buf, "Discharging", 4) == 0) {
 		strcpy(buf, "-");
 	} else if (strncmp(buf, "Charging", 4) == 0) {
@@ -233,10 +234,10 @@ int main() {
 		/* load */
 		getloadavg(load, _mekstatus_load_nelem);
 		for (i = 0; i < _mekstatus_load_nelem - 1; i += 1) {
-			sprintf(buf, "%.2f", load[i]);
+			snprintf(buf, sizeof(buf), "%.2f", load[i]);
 			colorprint(buf, percentagecolor(100.0 - 20.0 * mstatclamp(load[i], 0.0, 5.0)));
 		}
-		sprintf(buf, "%.2f", load[_mekstatus_load_nelem - 1]);
+		snprintf(buf, sizeof(buf), "%.2f", load[_mekstatus_load_nelem - 1]);
 		colorprint(buf, percentagecolor(100.0 - 20.0 * mstatclamp(load[i], 0.0, 5.0)));
 		/* battery, if any exists */
 		if (batt_use) {
@@ -247,7 +248,7 @@ int main() {
 			batt_charge_prc = (double) 100 * (double) batt_charge_curr / (double) batt_charge_full;
 			batt_color = percentagecolor(batt_charge_prc);
 			/* print it */
-			sprintf(buf, "%.2f%%", batt_charge_prc);
+			snprintf(buf, sizeof(buf), "%.2f%%", batt_charge_prc);
 			colorprint(buf, batt_color);
 			colorprint(batt_charge_status, battstatuscolor(batt_charge_status));
 			free(batt_color);
