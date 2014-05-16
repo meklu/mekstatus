@@ -6,6 +6,7 @@
 #include <time.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/wait.h>
 
 /* battery id
  * if this doesn't work, take a look in /sys/class/power_supply/
@@ -194,6 +195,7 @@ int main() {
 	/* battery stack */
 	const char *batt_name = _mekstatus_battery_id;
 	int batt_use = hasbattery(batt_name);
+	int batt_sent = 0;
 	int batt_charge_full;
 	int batt_charge_curr;
 	char batt_charge_status[32];
@@ -252,6 +254,37 @@ int main() {
 			colorprint(buf, batt_color);
 			colorprint(batt_charge_status, battstatuscolor(batt_charge_status));
 			free(batt_color);
+			/* notify if we haven't already */
+			if (batt_sent == 0) {
+				static char *args[] = {
+					"notify-send",
+					"--urgency=critical",
+					"--expire-time=0",
+					"--category=warning",
+					"Low battery",
+					"Your battery is running low.",
+					NULL
+				};
+				if (
+					batt_charge_status[0] != '+' &&
+					batt_charge_status[0] != '~' &&
+					batt_charge_prc < 10.0
+				) {
+					pid_t child = fork();
+					if (child == 0) {
+						exit(execvp(args[0], args));
+					} else if (child > 0) {
+						batt_sent = 1;
+						wait(NULL);
+					}
+				}
+			} else if (
+				batt_charge_prc > 15.0 ||
+				batt_charge_status[0] == '+' ||
+				batt_charge_status[0] == '~'
+			) {
+				batt_sent = 0;
+			}
 		}
 		printf("]\n");
 		fflush(stdout);
