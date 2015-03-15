@@ -1,5 +1,5 @@
 /* mekstatus, a status provider thing for i3bar.
- * copyleft (CC-0) 2013 Melker "meklu" Narikka
+ * copyleft (CC-0) 2013-2015 Melker "meklu" Narikka
  */
 #include <stdlib.h>
 #include <stdio.h>
@@ -7,6 +7,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#include <signal.h>
 
 /* battery id
  * if this doesn't work, take a look in /sys/class/power_supply/
@@ -191,6 +192,11 @@ int hasbattery(const char *identifier) {
 	return checkbatteryproperty(identifier, "type", isbatteryfilt, NULL);
 }
 
+void catchalarm(int sig) {
+	(void) sig;
+	return;
+}
+
 int main() {
 	/* battery stack */
 	const char *batt_name = _mekstatus_battery_id;
@@ -213,6 +219,8 @@ int main() {
 	double load[_mekstatus_load_nelem];
 	/* iterator */
 	int i = 0;
+	/* catch SIGALRM */
+	signal(SIGALRM, catchalarm);
 	printf("{\"version\":1}\n");
 	fflush(stdout);
 	printf("[\n");
@@ -291,6 +299,9 @@ int main() {
 		/* aligning to second */
 		ts_time.tv_sec += 1;
 		ts_time.tv_nsec = 0;
+		/* if the time is changed radically when we're sleeping, fire an alarm so as to not sleep for
+		 * three days straight */
+		alarm(2);
 		clock_nanosleep(CLOCK_REALTIME, TIMER_ABSTIME, &ts_time, NULL);
 	} while (1);
 }
