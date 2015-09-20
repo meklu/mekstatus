@@ -266,6 +266,7 @@ int main() {
 			if (batt_sent == 0) {
 				static char *args[] = {
 					"notify-send",
+					"--app-name=mekstatus",
 					"--urgency=critical",
 					"--expire-time=0",
 					"--category=warning",
